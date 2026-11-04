@@ -127,7 +127,7 @@ export function ProgressChart({ dadosIniciais, hoje }: Props) {
   }
 
   const escala = construirEscalaGrafico(
-    dados.map((ponto) => ponto.concluidas),
+    dados.map((ponto) => ponto.total),
   );
 
   const semDados = dados.length === 0;

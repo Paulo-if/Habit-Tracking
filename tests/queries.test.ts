@@ -134,11 +134,42 @@ describe("obterDias", () => {
 });
 
 describe("obterDadosGrafico", () => {
-  it("conta atividades concluídas e inclui dias sem conclusões com zero", async () => {
+  it("mantém conclusões e capacidade independentes em dias com muitos pendentes", async () => {
+    const registros = [
+      { data: "2026-11-03", total: 3, concluidas: 2 },
+      { data: "2026-11-04", total: 200, concluidas: 20 },
+      { data: "2026-11-05", total: 50, concluidas: 0 },
+      { data: "2026-11-06", total: 500, concluidas: 500 },
+    ];
+
+    for (const registro of registros) {
+      for (let i = 0; i < registro.total; i += 1) {
+        await db.run(
+          `INSERT INTO entries
+             (data, titulo, concluido, ordem, tipo)
+           VALUES (?, ?, ?, ?, 'avulsa')`,
+          registro.data,
+          `Atividade ${i + 1}`,
+          i < registro.concluidas ? 1 : 0,
+          i,
+        );
+      }
+    }
+
+    const pontos = await obterDadosGrafico(db, "2026-11-03", "2026-11-05");
+    expect(pontos).toEqual([
+      { data: "2026-11-03", concluidas: 2, total: 3 },
+      { data: "2026-11-04", concluidas: 20, total: 200 },
+      { data: "2026-11-05", concluidas: 0, total: 50 },
+    ]);
+  });
+
+  it("conta conclusões e totais separadamente, incluindo dias sem registros", async () => {
     const registros = [
       { data: "2026-10-19", concluidas: 3, pendentes: 7 },
       { data: "2026-10-20", concluidas: 5, pendentes: 0 },
       { data: "2026-10-22", concluidas: 2, pendentes: 6 },
+      { data: "2026-10-23", concluidas: 100, pendentes: 100 },
     ];
 
     for (const registro of registros) {
@@ -157,14 +188,14 @@ describe("obterDadosGrafico", () => {
 
     const pontos = await obterDadosGrafico(db, "2026-10-19", "2026-10-22");
     expect(pontos).toEqual([
-      { data: "2026-10-19", concluidas: 3 },
-      { data: "2026-10-20", concluidas: 5 },
-      { data: "2026-10-21", concluidas: 0 },
-      { data: "2026-10-22", concluidas: 2 },
+      { data: "2026-10-19", concluidas: 3, total: 10 },
+      { data: "2026-10-20", concluidas: 5, total: 5 },
+      { data: "2026-10-21", concluidas: 0, total: 0 },
+      { data: "2026-10-22", concluidas: 2, total: 8 },
     ]);
   });
 
-  it("atualiza a contagem ao concluir e desfazer uma atividade", async () => {
+  it("mantém o total ao concluir e desfazer atividades", async () => {
     const resultado = await criarTarefaAvulsa(
       db,
       "2026-10-19",
@@ -179,37 +210,55 @@ describe("obterDadosGrafico", () => {
         "2026-10-19",
         "2026-10-19",
       );
-      return ponto.concluidas;
+      return ponto;
     };
 
-    expect(await consultarContagem()).toBe(0);
+    expect(await consultarContagem()).toMatchObject({
+      concluidas: 0,
+      total: 1,
+    });
     await marcarEntrada(db, resultado.id, true, "2026-10-19");
-    expect(await consultarContagem()).toBe(1);
+    expect(await consultarContagem()).toMatchObject({
+      concluidas: 1,
+      total: 1,
+    });
     await marcarEntrada(db, resultado.id, false, "2026-10-19");
-    expect(await consultarContagem()).toBe(0);
+    expect(await consultarContagem()).toMatchObject({
+      concluidas: 0,
+      total: 1,
+    });
   });
 
-  it("conta apenas tarefas avulsas e hábitos concluídos", async () => {
+  it("conta hábitos e tarefas avulsas, concluídos ou pendentes", async () => {
     inserirHabito(db, {
       nome: "Ler",
       criadoEm: "2026-10-19",
-      dias: [1],
+      dias: [1, 2, 3, 4, 5, 6, 7],
+    });
+    inserirHabito(db, {
+      nome: "Caminhar",
+      criadoEm: "2026-10-19",
+      dias: [1, 2, 3, 4, 5, 6, 7],
     });
     await garantirRegistrosAte(db, "2026-10-19");
 
-    const entrada = listarEntradas(db)[0];
-    await marcarEntrada(db, entrada.id, true, "2026-10-19");
+    const habitos = listarEntradas(db);
+    await marcarEntrada(db, habitos[0].id, true, "2026-10-19");
     await criarTarefaAvulsa(db, "2026-10-19", "Dentista", "2026-10-19");
+    const tarefaConcluida = await criarTarefaAvulsa(
+      db,
+      "2026-10-19",
+      "Ligar",
+      "2026-10-19",
+    );
+    if (!tarefaConcluida.ok) throw new Error(tarefaConcluida.erro);
+    await marcarEntrada(db, tarefaConcluida.id, true, "2026-10-19");
 
-    let pontos = await obterDadosGrafico(db, "2026-10-19", "2026-10-19");
-    expect(pontos[0].concluidas).toBe(1);
-
-    const tarefaPendente = listarEntradas(db).find(
-      (item) => item.titulo === "Dentista",
-    )!;
-    await marcarEntrada(db, tarefaPendente.id, true, "2026-10-19");
-
-    pontos = await obterDadosGrafico(db, "2026-10-19", "2026-10-19");
-    expect(pontos[0].concluidas).toBe(2);
+    const [ponto] = await obterDadosGrafico(db, "2026-10-19", "2026-10-19");
+    expect(ponto).toEqual({
+      data: "2026-10-19",
+      concluidas: 2,
+      total: 4,
+    });
   });
 });
