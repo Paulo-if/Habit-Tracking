@@ -154,14 +154,14 @@ export async function obterDadosGrafico(
 
   const linhas = await db.all<{
     data: string;
-    concluidas: number;
+    total: number;
   }>(
     `SELECT data,
-            CAST(SUM(CASE WHEN concluido = 1 THEN 1 ELSE 0 END) AS INTEGER)
-              AS concluidas
+            CAST(COUNT(*) AS INTEGER) AS total
      FROM entries
      WHERE data BETWEEN ? AND ?
-     GROUP BY data`,
+     GROUP BY data
+     ORDER BY data ASC`,
     inicio,
     fim,
   );
@@ -171,7 +171,7 @@ export async function obterDadosGrafico(
     const linha = porData.get(data);
     return {
       data,
-      concluidas: linha?.concluidas ?? 0,
+      total: linha?.total ?? 0,
     };
   });
 }

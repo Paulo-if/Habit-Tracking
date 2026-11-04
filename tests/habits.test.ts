@@ -249,9 +249,9 @@ describe("arquivarHabito", () => {
     await expect(
       obterDadosGrafico(db, "2026-10-21", "2026-10-23"),
     ).resolves.toMatchObject([
-      { data: "2026-10-21", concluidas: 0 },
-      { data: "2026-10-22", concluidas: 0 },
-      { data: "2026-10-23", concluidas: 0 },
+      { data: "2026-10-21", total: 1 },
+      { data: "2026-10-22", total: 0 },
+      { data: "2026-10-23", total: 0 },
     ]);
   });
 });
