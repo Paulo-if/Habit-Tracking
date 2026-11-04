@@ -45,10 +45,7 @@ export default async function PaginaSemana() {
             <h1 className="text-2xl font-semibold tracking-tight text-text sm:text-3sxl">
               Controle de Hábitos
             </h1>
-            <p className="mt-1 text-sm text-text-muted">
-              Próximos 7 dias: {formatarIntervalo(hoje, fim)} · Hoje é{" "}
-              {formatarDataLonga(hoje)}
-            </p>
+           
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -69,7 +66,7 @@ export default async function PaginaSemana() {
         </div>
 
         <footer className="mt-8 text-center text-xs text-text-muted">
-          Os registros de cada dia são criados automaticamente ao abrir o app.
+          RD 🎈
         </footer>
       </main>
     </SyncProvider>

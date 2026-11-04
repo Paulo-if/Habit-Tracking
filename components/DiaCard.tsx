@@ -196,8 +196,7 @@ export function DiaCard({
           )}
           {itensOcultos > 0 && (
             <p className="px-3 text-xs text-text-muted">
-              + {itensOcultos} {itensOcultos === 1 ? "atividade" : "atividades"}{" "}
-              — clique no card para ver tudo
+              + {itensOcultos} {itensOcultos === 1 ? "atividade" : "atividades"}{" "}.
             </p>
           )}
         </div>
