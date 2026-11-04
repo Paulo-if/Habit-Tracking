@@ -30,9 +30,7 @@ export default async function PaginaHistorico({ searchParams }: Props) {
   const dataSelecionada = dataBruta && dataValida(dataBruta) ? dataBruta : hoje;
 
   const inicio = inicioDaSemana(dataSelecionada);
-  const inicioSemanaAtual = inicioDaSemana(hoje);
   const fim = adicionarDias(inicio, 6);
-  const semanaFutura = inicio > inicioSemanaAtual;
 
   const db = await prepararApp();
   const dias = await obterSemana(db, inicio, hoje, true);
@@ -63,17 +61,9 @@ export default async function PaginaHistorico({ searchParams }: Props) {
         <NavegacaoHistorico
           dataSelecionada={dataSelecionada}
           inicioSemana={inicio}
-          inicioSemanaAtual={inicioSemanaAtual}
-          hoje={hoje}
         />
 
-        {semanaFutura ? (
-          <p className="rounded-xl border border-dashed border-zinc-300 bg-white px-4 py-8 text-center text-sm text-zinc-500">
-            Esta semana ainda não aconteceu.
-          </p>
-        ) : (
-          <DiasGrid dias={dias} mensagemVazia="Nenhum registro nesta semana." />
-        )}
+        <DiasGrid dias={dias} mensagemVazia="Nenhum registro nesta semana." />
       </main>
     </SyncProvider>
   );

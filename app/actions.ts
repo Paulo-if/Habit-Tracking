@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { dataValida, hojeSP } from "@/lib/dates";
+import { dataValida } from "@/lib/dates";
 import {
   cardExiste,
   criarCard,
@@ -188,20 +188,16 @@ export async function buscarGraficoAction(
     return { ok: false, erro: "Período inválido." };
   }
 
-  const hoje = hojeSP();
-  // Dias futuros nunca aparecem no gráfico.
-  const fimEfetivo = fim > hoje ? hoje : fim;
-
-  if (inicio > fimEfetivo) {
-    return { ok: false, erro: "O período escolhido está no futuro." };
+  if (inicio > fim) {
+    return { ok: false, erro: "A data inicial precisa ser anterior à data final." };
   }
 
   return rastrearAcao("LOAD_CHART", async (etapa) => {
     const db = await getDb();
     etapa("banco preparado");
-    const pontos = await obterDadosGrafico(db, inicio, fimEfetivo);
+    const pontos = await obterDadosGrafico(db, inicio, fim);
     etapa("consulta concluída");
 
-    return { ok: true, pontos, inicio, fim: fimEfetivo };
+    return { ok: true, pontos, inicio, fim };
   });
 }

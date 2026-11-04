@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { criarCard } from "../lib/dayCards";
 import { criarTarefaAvulsa, marcarEntrada } from "../lib/entries";
 import { obterDadosGrafico, obterDias, obterSemana } from "../lib/queries";
 import {
@@ -59,7 +60,7 @@ describe("obterSemana", () => {
     expect(terca.ehPrevia).toBe(false);
   });
 
-  it("histórico só mostra dias <= hoje que têm registros", async () => {
+  it("histórico mostra dias passados e futuros com registros ou cards", async () => {
     inserirHabito(db, {
       nome: "Ler",
       criadoEm: "2026-10-19",
@@ -67,6 +68,7 @@ describe("obterSemana", () => {
     });
     await garantirRegistrosAte(db, "2026-10-21");
     await criarTarefaAvulsa(db, "2026-10-20", "Dentista", "2026-10-21");
+    await criarCard(db, "2026-10-22", "2026-10-21");
 
     const dias = await obterSemana(db, "2026-10-19", "2026-10-21", true);
 
@@ -74,10 +76,17 @@ describe("obterSemana", () => {
       "2026-10-19",
       "2026-10-20",
       "2026-10-21",
+      "2026-10-22",
     ]);
+    expect(dias[3]).toMatchObject({
+      data: "2026-10-22",
+      ehFuturo: true,
+      ehPrevia: false,
+      itens: [],
+    });
   });
 
-  it("histórico não mostra dias futuros nem semanas vazias", async () => {
+  it("histórico não mostra dias futuros sem registros nem semanas vazias", async () => {
     inserirHabito(db, {
       nome: "Ler",
       criadoEm: "2026-10-19",

@@ -85,9 +85,15 @@ export async function obterDias(
   const dias: DiaDaSemana[] = [];
   for (const data of unicas) {
     if (data > hoje) {
-      if (apenasComRegistros) continue;
       const entradas = entradasPorData.get(data) ?? [];
-      if (entradas.length > 0) {
+      if (
+        apenasComRegistros &&
+        entradas.length === 0 &&
+        !cardsExtras.has(data)
+      ) {
+        continue;
+      }
+      if (entradas.length > 0 || apenasComRegistros) {
         dias.push({
           data,
           ehHoje: false,

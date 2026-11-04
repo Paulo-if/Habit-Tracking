@@ -114,7 +114,7 @@ export function ProgressChart({ dadosIniciais, hoje }: Props) {
     setErro(null);
 
     const inicio = inicioCustom;
-    const fim = fimCustom > hoje ? hoje : fimCustom;
+    const fim = fimCustom;
 
     if (inicio > fim) {
       setErro("A data inicial precisa ser anterior à data final.");
@@ -195,14 +195,12 @@ export function ProgressChart({ dadosIniciais, hoje }: Props) {
             rotulo="De"
             valor={inicioCustom}
             aoMudar={setInicioCustom}
-            max={hoje}
             className="w-40"
           />
           <CampoData
             rotulo="Até"
             valor={fimCustom}
             aoMudar={setFimCustom}
-            max={hoje}
             className="w-40"
           />
           <button
