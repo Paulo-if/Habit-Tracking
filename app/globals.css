@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+@theme {
+  /*
+     PALETA TEMA ESCURO
+  */
+  --color-bg: #0a0a0b;           /* Fundo da página */
+  --color-surface: #141416;       /* Cards e painéis principais */
+  --color-surface-2: #1c1c1f;     /* Superfícies secundárias (inputs, hover) */
+  --color-border: #26262b;        /* Bordas sutis */
+  --color-border-strong: #3f3f46; /* Bordas mais visíveis */
+
+  --color-text: #f4f4f5;         /* Texto principal */
+  --color-text-muted: #a1a1aa;   /* Texto secundário / legendas */
+  --color-text-disabled: #71717a; /* Texto desativado */
+
+  --color-accent: #105ce8;        /* Cor de destaque (azul) */
+  --color-accent-muted: rgba(16, 92, 232, 0.15);
+  --color-accent-border: rgba(16, 92, 232, 0.4);
+
+  --color-danger: #ef4444;       /* Erros e remoções */
+  --color-danger-bg: rgba(239, 68, 68, 0.1);
+
+  /* Aliases para compatibilidade durante a migração */
+  --color-marca: var(--color-accent);
+  --color-bg-app: var(--color-bg);
+  --color-bg-card: var(--color-surface);
+  --color-bg-input: var(--color-surface-2);
+  --color-bg-muted: var(--color-surface-2);
+  --color-text-main: var(--color-text);
+  --color-text-sub: var(--color-text-muted);
+  --color-text-muted-old: var(--color-text-disabled);
+  --color-text-inv: #ffffff;
+  --color-border-light: var(--color-border);
+  --color-border-medium: var(--color-border-strong);
+}
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  min-height: 100vh;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+}
