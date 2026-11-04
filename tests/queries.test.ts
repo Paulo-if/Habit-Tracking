@@ -125,7 +125,7 @@ describe("obterDias", () => {
 });
 
 describe("obterDadosGrafico", () => {
-  it("conta todas as atividades e inclui dias sem atividades com zero", async () => {
+  it("conta atividades concluídas e inclui dias sem conclusões com zero", async () => {
     const registros = [
       { data: "2026-10-19", concluidas: 3, pendentes: 7 },
       { data: "2026-10-20", concluidas: 5, pendentes: 0 },
@@ -148,14 +148,14 @@ describe("obterDadosGrafico", () => {
 
     const pontos = await obterDadosGrafico(db, "2026-10-19", "2026-10-22");
     expect(pontos).toEqual([
-      { data: "2026-10-19", total: 10 },
-      { data: "2026-10-20", total: 5 },
-      { data: "2026-10-21", total: 0 },
-      { data: "2026-10-22", total: 8 },
+      { data: "2026-10-19", concluidas: 3 },
+      { data: "2026-10-20", concluidas: 5 },
+      { data: "2026-10-21", concluidas: 0 },
+      { data: "2026-10-22", concluidas: 2 },
     ]);
   });
 
-  it("mantém o total ao concluir e desfazer uma atividade", async () => {
+  it("atualiza a contagem ao concluir e desfazer uma atividade", async () => {
     const resultado = await criarTarefaAvulsa(
       db,
       "2026-10-19",
@@ -170,17 +170,17 @@ describe("obterDadosGrafico", () => {
         "2026-10-19",
         "2026-10-19",
       );
-      return ponto.total;
+      return ponto.concluidas;
     };
 
-    expect(await consultarContagem()).toBe(1);
+    expect(await consultarContagem()).toBe(0);
     await marcarEntrada(db, resultado.id, true, "2026-10-19");
     expect(await consultarContagem()).toBe(1);
     await marcarEntrada(db, resultado.id, false, "2026-10-19");
-    expect(await consultarContagem()).toBe(1);
+    expect(await consultarContagem()).toBe(0);
   });
 
-  it("conta tarefas avulsas e hábitos, concluídos ou pendentes", async () => {
+  it("conta apenas tarefas avulsas e hábitos concluídos", async () => {
     inserirHabito(db, {
       nome: "Ler",
       criadoEm: "2026-10-19",
@@ -193,7 +193,7 @@ describe("obterDadosGrafico", () => {
     await criarTarefaAvulsa(db, "2026-10-19", "Dentista", "2026-10-19");
 
     let pontos = await obterDadosGrafico(db, "2026-10-19", "2026-10-19");
-    expect(pontos[0].total).toBe(2);
+    expect(pontos[0].concluidas).toBe(1);
 
     const tarefaPendente = listarEntradas(db).find(
       (item) => item.titulo === "Dentista",
@@ -201,6 +201,6 @@ describe("obterDadosGrafico", () => {
     await marcarEntrada(db, tarefaPendente.id, true, "2026-10-19");
 
     pontos = await obterDadosGrafico(db, "2026-10-19", "2026-10-19");
-    expect(pontos[0].total).toBe(2);
+    expect(pontos[0].concluidas).toBe(2);
   });
 });

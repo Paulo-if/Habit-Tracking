@@ -44,7 +44,7 @@ export type DiaDaSemana = {
 
 export type PontoGrafico = {
   data: string;
-  total: number;
+  concluidas: number;
 };
 
 export type ResultadoAcao = { ok: true } | { ok: false; erro: string };

@@ -126,7 +126,9 @@ export function ProgressChart({ dadosIniciais, hoje }: Props) {
     void carregar(inicio, fim);
   }
 
-  const escala = construirEscalaGrafico(dados.map((ponto) => ponto.total));
+  const escala = construirEscalaGrafico(
+    dados.map((ponto) => ponto.concluidas),
+  );
 
   const semDados = dados.length === 0;
 
@@ -229,7 +231,7 @@ export function ProgressChart({ dadosIniciais, hoje }: Props) {
         ) : (
           <div
             role="img"
-            aria-label={`Gráfico temporal da quantidade total de atividades por dia, de ${formatarIntervalo(intervalo.inicio, intervalo.fim)}. Dias sem atividades aparecem com valor zero.`}
+            aria-label={`Gráfico temporal da quantidade de atividades concluídas por dia, de ${formatarIntervalo(intervalo.inicio, intervalo.fim)}. Dias sem atividades concluídas aparecem com valor zero.`}
             className="h-64 min-w-0 w-full"
           >
             <ResponsiveContainer width="100%" height="100%">
@@ -281,7 +283,7 @@ export function ProgressChart({ dadosIniciais, hoje }: Props) {
                   ))}
                 <ReferenceLine y={0} stroke="#2D2F33" />
                 <Tooltip
-                  formatter={(valor) => [`${Number(valor)} atividades`, "Total"]}
+                  formatter={(valor) => [`${Number(valor)} concluídas`, "Concluídas"]}
                   labelFormatter={(rotulo) =>
                     capitalizar(formatarDataLonga(String(rotulo)))
                   }
@@ -297,7 +299,7 @@ export function ProgressChart({ dadosIniciais, hoje }: Props) {
                 />
                 <Area
                   type="monotone"
-                  dataKey="total"
+                  dataKey="concluidas"
                   stroke="#3B82F6"
                   strokeWidth={2.5}
                   fill="url(#progress-area-gradient)"
