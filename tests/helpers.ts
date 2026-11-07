@@ -29,6 +29,11 @@ CREATE TABLE entries (
 CREATE UNIQUE INDEX ux_entries_habit_data
   ON entries(habit_id, data) WHERE habit_id IS NOT NULL;
 CREATE INDEX ix_entries_data ON entries(data);
+CREATE TABLE habit_entries_removed (
+  habit_id INTEGER NOT NULL REFERENCES habits(id),
+  data TEXT NOT NULL,
+  PRIMARY KEY (habit_id, data)
+);
 CREATE TABLE app_meta (chave TEXT PRIMARY KEY, valor TEXT NOT NULL);
 CREATE TABLE dias_extras (data TEXT PRIMARY KEY, criado_em TEXT NOT NULL);
 CREATE TABLE dias_removidos (data TEXT PRIMARY KEY, removido_em TEXT NOT NULL);

@@ -13,7 +13,7 @@ type Props = {
   aoFechar: () => void;
   aoAlternar: (item: ItemDia, concluido: boolean) => void;
   aoAdicionarTarefa: (data: string, titulo: string) => Promise<boolean>;
-  aoRemoverTarefa: (id: number) => void;
+  aoRemoverTarefa: (data: string, id: number) => void;
   aoReordenar: (
     data: string,
     origemId: number,
@@ -332,7 +332,7 @@ export function CardDiaModal({
           descricao={`Tem certeza que deseja remover "${tarefaParaRemover.titulo}" deste dia?`}
           rotuloConfirmar="Remover"
           aoConfirmar={() => {
-            aoRemoverTarefa(tarefaParaRemover.id!);
+            aoRemoverTarefa(dia.data, tarefaParaRemover.id!);
             setTarefaParaRemover(null);
           }}
           aoCancelar={() => setTarefaParaRemover(null)}

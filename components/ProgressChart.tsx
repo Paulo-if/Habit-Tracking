@@ -37,14 +37,14 @@ const PRESETS = [
 export function ProgressChart({ dadosIniciais, hoje }: Props) {
   const { versao } = useSync();
 
-  const [periodo, setPeriodo] = useState<number | "custom">(30);
+  const [periodo, setPeriodo] = useState<number | "custom">(7);
   const [dados, setDados] = useState<PontoGrafico[]>(dadosIniciais);
   const [intervalo, setIntervalo] = useState({
-    inicio: adicionarDias(hoje, -29),
+    inicio: adicionarDias(hoje, -6),
     fim: hoje,
   });
   const [mostrarCustom, setMostrarCustom] = useState(false);
-  const [inicioCustom, setInicioCustom] = useState(adicionarDias(hoje, -29));
+  const [inicioCustom, setInicioCustom] = useState(adicionarDias(hoje, -6));
   const [fimCustom, setFimCustom] = useState(hoje);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -84,11 +84,11 @@ export function ProgressChart({ dadosIniciais, hoje }: Props) {
   }, [versao]);
 
   useEffect(() => {
-    const base = adicionarDias(hoje, -29);
+    const base = adicionarDias(hoje, -6);
     setInicioCustom(base);
     setFimCustom(hoje);
 
-    if (periodo === 30) {
+    if (periodo === 7) {
       setIntervalo({ inicio: base, fim: hoje });
       setDados(dadosIniciais);
       return;

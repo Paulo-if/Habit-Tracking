@@ -152,6 +152,11 @@ CREATE TABLE IF NOT EXISTS entries (
 CREATE UNIQUE INDEX IF NOT EXISTS ux_entries_habit_data
   ON entries(habit_id, data) WHERE habit_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS ix_entries_data ON entries(data);
+CREATE TABLE IF NOT EXISTS habit_entries_removed (
+  habit_id INTEGER NOT NULL REFERENCES habits(id) ON DELETE CASCADE,
+  data TEXT NOT NULL,
+  PRIMARY KEY (habit_id, data)
+);
 CREATE TABLE IF NOT EXISTS app_meta (
   chave TEXT PRIMARY KEY,
   valor TEXT NOT NULL

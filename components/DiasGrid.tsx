@@ -6,7 +6,7 @@ import {
   alternarEntradaAction,
   criarTarefaAction,
   excluirCardAction,
-  excluirTarefaAction,
+  excluirEntradaDoDiaAction,
   reordenarItensAction,
 } from "@/app/actions";
 import type { DiaDaSemana, ItemDia } from "@/lib/types";
@@ -171,11 +171,11 @@ export function DiasGrid({ dias, mensagemVazia }: Props) {
     }
   }
 
-  function removerTarefa(id: number) {
+  function removerTarefa(data: string, id: number) {
     setErro(null);
     setRemovidos((atual) => [...atual, id]);
 
-    void excluirTarefaAction(id)
+    void excluirEntradaDoDiaAction(id, data)
       .then((resultado) => {
         if (!resultado.ok) {
           setRemovidos((atual) =>

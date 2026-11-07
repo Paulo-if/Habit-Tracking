@@ -110,6 +110,9 @@ async function inserirSeFaltar(
      WHERE NOT EXISTS (
        SELECT 1 FROM entries WHERE data = ? AND habit_id = ?
      )
+     AND NOT EXISTS (
+       SELECT 1 FROM habit_entries_removed WHERE habit_id = ? AND data = ?
+     )
      ON CONFLICT DO NOTHING`,
     data,
     habitId,
@@ -117,6 +120,8 @@ async function inserirSeFaltar(
     data,
     data,
     habitId,
+    habitId,
+    data,
   );
 }
 

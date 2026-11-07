@@ -11,6 +11,7 @@ import {
 import { getDb } from "@/lib/db";
 import {
   criarTarefaAvulsa,
+  excluirEntradaDoDia,
   excluirTarefaAvulsa,
   marcarEntrada,
   reordenarEntradas,
@@ -159,7 +160,26 @@ export async function criarTarefaAction(
   return resultado;
 }
 
-export async function excluirTarefaAction(id: number): Promise<ResultadoAcao> {
+export async function excluirEntradaDoDiaAction(
+  id: number,
+  data: string,
+): Promise<ResultadoAcao> {
+  if (!Number.isInteger(id)) return { ok: false, erro: "Item inválido." };
+  if (!dataValida(data)) return { ok: false, erro: "Data inválida." };
+
+  const resultado = await excluirEntradaDoDia(await getDb(), id, data);
+  if (resultado.ok) revalidar();
+  return resultado;
+}
+
+export async function excluirTarefaAction(
+  id: number,
+  data?: string,
+): Promise<ResultadoAcao> {
+  if (data) {
+    return excluirEntradaDoDiaAction(id, data);
+  }
+
   if (!Number.isInteger(id)) return { ok: false, erro: "Tarefa inválida." };
 
   const resultado = await excluirTarefaAvulsa(await getDb(), id);
