@@ -32,7 +32,7 @@ export default async function PaginaSemana() {
   const habitos = await listarHabitosAtivos(db, hoje);
   const dadosIniciais = await obterDadosGrafico(
     db,
-    adicionarDias(hoje, -29),
+    adicionarDias(hoje, -6),
     hoje,
   );
 

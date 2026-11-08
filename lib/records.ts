@@ -82,14 +82,18 @@ export async function dataRemovida(db: DB, data: string): Promise<boolean> {
 export async function listarHabitosNaData(
   db: DB,
   data: string,
-): Promise<Array<{ id: number; nome: string }>> {
+): Promise<Array<{ id: number; nome: string; descricao: string }>> {
   if (await dataRemovida(db, data)) return [];
 
   const habitos = await db.all<Habito>("SELECT * FROM habits ORDER BY id ASC");
-  const resultado: Array<{ id: number; nome: string }> = [];
+  const resultado: Array<{ id: number; nome: string; descricao: string }> = [];
   for (const habito of habitos) {
     if (await habitoPrevistoNaData(db, habito, data)) {
-      resultado.push({ id: habito.id, nome: habito.nome });
+      resultado.push({
+        id: habito.id,
+        nome: habito.nome,
+        descricao: habito.descricao ?? "",
+      });
     }
   }
   return resultado;
@@ -110,6 +114,9 @@ async function inserirSeFaltar(
      WHERE NOT EXISTS (
        SELECT 1 FROM entries WHERE data = ? AND habit_id = ?
      )
+     AND NOT EXISTS (
+       SELECT 1 FROM habit_entries_removed WHERE habit_id = ? AND data = ?
+     )
      ON CONFLICT DO NOTHING`,
     data,
     habitId,
@@ -117,6 +124,8 @@ async function inserirSeFaltar(
     data,
     data,
     habitId,
+    habitId,
+    data,
   );
 }
 

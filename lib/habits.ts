@@ -26,6 +26,12 @@ function validarNome(nomeBruto: string): string | null {
   return nome;
 }
 
+function validarDescricao(descricaoBruta: string): string | null {
+  const descricao = descricaoBruta.trim();
+  if (descricao.length > 500) return null;
+  return descricao;
+}
+
 async function reconciliarHoje(
   db: DB,
   habitId: number,
@@ -57,9 +63,15 @@ export async function criarHabito(
   nomeBruto: string,
   diasBrutos: number[],
   hoje: string = hojeSP(),
+  descricaoBruta: string = "",
 ): Promise<ResultadoComId> {
   const nome = validarNome(nomeBruto);
   if (!nome) return { ok: false, erro: "Informe um nome de até 80 caracteres." };
+
+  const descricao = validarDescricao(descricaoBruta);
+  if (descricao === null) {
+    return { ok: false, erro: "A descrição deve ter no máximo 500 caracteres." };
+  }
 
   const dias = normalizarDias(diasBrutos);
   if (dias.length === 0) {
@@ -68,8 +80,9 @@ export async function criarHabito(
 
   const id = await db.transaction(async (tx) => {
     const resultado = await tx.run(
-      "INSERT INTO habits (nome, criado_em) VALUES (?, ?)",
+      "INSERT INTO habits (nome, descricao, criado_em) VALUES (?, ?, ?)",
       nome,
+      descricao,
       hoje,
     );
     const habitId = Number(resultado.lastInsertRowid);
@@ -92,6 +105,7 @@ export async function atualizarHabito(
   nomeBruto: string,
   diasBrutos: number[],
   hoje: string = hojeSP(),
+  descricaoBruta: string = "",
 ): Promise<ResultadoAcao> {
   const habito = await db.get<Habito>("SELECT * FROM habits WHERE id = ?", id);
   if (!habito) return { ok: false, erro: "Hábito não encontrado." };
@@ -101,6 +115,12 @@ export async function atualizarHabito(
 
   const nome = validarNome(nomeBruto);
   if (!nome) return { ok: false, erro: "Informe um nome de até 80 caracteres." };
+
+  const descricao = validarDescricao(descricaoBruta);
+  if (descricao === null) {
+    return { ok: false, erro: "A descrição deve ter no máximo 500 caracteres." };
+  }
+
   const dias = normalizarDias(diasBrutos);
   if (dias.length === 0) {
     return { ok: false, erro: "Escolha pelo menos um dia da semana." };
@@ -108,8 +128,16 @@ export async function atualizarHabito(
 
   await garantirRegistrosAte(db, hoje);
   await db.transaction(async (tx) => {
+    if (nome !== habito.nome || descricao !== habito.descricao) {
+      await tx.run(
+        "UPDATE habits SET nome = ?, descricao = ? WHERE id = ?",
+        nome,
+        descricao,
+        id,
+      );
+    }
+
     if (nome !== habito.nome) {
-      await tx.run("UPDATE habits SET nome = ? WHERE id = ?", nome, id);
       await tx.run(
         "UPDATE entries SET titulo = ? WHERE habit_id = ? AND data >= ?",
         nome,
@@ -132,6 +160,31 @@ export async function atualizarHabito(
     }
   });
   await reconciliarHoje(db, id, hoje);
+  return { ok: true };
+}
+
+export async function atualizarDescricaoHabito(
+  db: DB,
+  id: number,
+  descricaoBruta: string,
+): Promise<ResultadoAcao> {
+  if (!Number.isInteger(id) || id <= 0) {
+    return { ok: false, erro: "Hábito inválido." };
+  }
+
+  const descricao = validarDescricao(descricaoBruta);
+  if (descricao === null) {
+    return { ok: false, erro: "A descrição deve ter no máximo 500 caracteres." };
+  }
+
+  const resultado = await db.run(
+    "UPDATE habits SET descricao = ? WHERE id = ?",
+    descricao,
+    id,
+  );
+  if (resultado.rowsAffected === 0) {
+    return { ok: false, erro: "Hábito não encontrado." };
+  }
   return { ok: true };
 }
 

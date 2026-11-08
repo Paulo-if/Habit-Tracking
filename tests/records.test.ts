@@ -140,4 +140,28 @@ describe("garantirRegistrosDoDia", () => {
 
     expect(listarEntradas(db)).toHaveLength(1);
   });
+
+  it("não recria um hábito removido em uma data específica", async () => {
+    const id = inserirHabito(db, {
+      nome: "Ler",
+      criadoEm: "2026-10-22",
+      dias: [4],
+    });
+
+    await garantirRegistrosDoDia(db, "2026-10-22");
+    await db.run("DELETE FROM entries WHERE habit_id = ? AND data = ?", id, "2026-10-22");
+    await db.run(
+      "INSERT INTO habit_entries_removed (habit_id, data) VALUES (?, ?)",
+      id,
+      "2026-10-22",
+    );
+
+    await garantirRegistrosDoDia(db, "2026-10-22");
+
+    expect(
+      listarEntradas(db).filter(
+        (entrada) => entrada.habit_id === id && entrada.data === "2026-10-22",
+      ),
+    ).toHaveLength(0);
+  });
 });

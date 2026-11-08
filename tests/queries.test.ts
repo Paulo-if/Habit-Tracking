@@ -108,6 +108,7 @@ describe("obterDias", () => {
       nome: "Ler",
       criadoEm: "2026-10-19",
       dias: [1, 2, 3, 4, 5, 6, 7],
+      descricao: "Ler por vinte minutos.",
     });
     await garantirRegistrosAte(db, "2026-10-21");
 
@@ -129,7 +130,39 @@ describe("obterDias", () => {
       editavel: true,
       ehPrevia: true,
     });
-    expect(dias[2].itens[0]).toMatchObject({ id: null, titulo: "Ler" });
+    expect(dias[2].itens[0]).toMatchObject({
+      id: null,
+      titulo: "Ler",
+      descricao: "Ler por vinte minutos.",
+    });
+  });
+
+  it("carrega descrições globais dos hábitos e descrições próprias das tarefas", async () => {
+    inserirHabito(db, {
+      nome: "Ler",
+      criadoEm: "2026-10-19",
+      dias: [1, 2, 3, 4, 5, 6, 7],
+      descricao: "Ler por vinte minutos.",
+    });
+    await garantirRegistrosAte(db, "2026-10-19");
+    const tarefa = await criarTarefaAvulsa(
+      db,
+      "2026-10-19",
+      "Dentista",
+      "2026-10-19",
+    );
+    if (!tarefa.ok) throw new Error(tarefa.erro);
+    await db.run(
+      "UPDATE entries SET descricao = ? WHERE id = ?",
+      "Levar os exames.",
+      tarefa.id,
+    );
+
+    const [dia] = await obterDias(db, ["2026-10-19"], "2026-10-19");
+    expect(dia.itens.map((item) => item.descricao)).toEqual([
+      "Ler por vinte minutos.",
+      "Levar os exames.",
+    ]);
   });
 });
 

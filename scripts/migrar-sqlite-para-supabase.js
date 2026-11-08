@@ -17,6 +17,7 @@ const SCHEMA = `
 CREATE TABLE IF NOT EXISTS habits (
   id SERIAL PRIMARY KEY,
   nome TEXT NOT NULL,
+  descricao TEXT NOT NULL DEFAULT '',
   arquivado_em TEXT,
   criado_em TEXT NOT NULL
 );
@@ -33,6 +34,7 @@ CREATE TABLE IF NOT EXISTS entries (
   data TEXT NOT NULL,
   habit_id INTEGER REFERENCES habits(id) ON DELETE SET NULL,
   titulo TEXT NOT NULL,
+  descricao TEXT NOT NULL DEFAULT '',
   concluido INTEGER NOT NULL DEFAULT 0 CHECK (concluido IN (0, 1)),
   concluido_em TEXT,
   ordem INTEGER NOT NULL DEFAULT 0,
@@ -54,6 +56,8 @@ CREATE TABLE IF NOT EXISTS dias_removidos (
   removido_em TEXT NOT NULL
 );
 ALTER TABLE entries ADD COLUMN IF NOT EXISTS ordem INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE habits ADD COLUMN IF NOT EXISTS descricao TEXT NOT NULL DEFAULT '';
+ALTER TABLE entries ADD COLUMN IF NOT EXISTS descricao TEXT NOT NULL DEFAULT '';
 `;
 
 function encontrarBackup() {

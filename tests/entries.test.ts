@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  atualizarDescricaoTarefa,
   criarTarefaAvulsa,
+  excluirEntradaDoDia,
   excluirTarefaAvulsa,
   marcarEntrada,
   reordenarEntradas,
 } from "../lib/entries";
-import { garantirRegistrosAte } from "../lib/records";
+import { garantirRegistrosAte, garantirRegistrosDoDia } from "../lib/records";
 import type { Entrada } from "../lib/types";
 import {
   bancoDeTeste,
@@ -84,6 +86,40 @@ describe("marcarEntrada", () => {
 });
 
 describe("tarefas avulsas", () => {
+  it("salva a descrição somente na ocorrência de tarefa indicada", async () => {
+    const primeira = await criarTarefaAvulsa(
+      db,
+      "2026-10-20",
+      "Dentista",
+      "2026-10-20",
+    );
+    const segunda = await criarTarefaAvulsa(
+      db,
+      "2026-10-21",
+      "Dentista",
+      "2026-10-20",
+    );
+    if (!primeira.ok || !segunda.ok) {
+      throw new Error("Falha ao criar tarefas para o teste.");
+    }
+
+    expect(
+      await atualizarDescricaoTarefa(
+        db,
+        primeira.id,
+        "2026-10-20",
+        "Levar os exames.",
+      ),
+    ).toEqual({ ok: true });
+
+    expect(
+      db.prepare("SELECT descricao FROM entries WHERE id = ?").get(primeira.id),
+    ).toEqual({ descricao: "Levar os exames." });
+    expect(
+      db.prepare("SELECT descricao FROM entries WHERE id = ?").get(segunda.id),
+    ).toEqual({ descricao: "" });
+  });
+
   it("cria a primeira tarefa em uma data sem outras entradas", async () => {
     const resultado = await criarTarefaAvulsa(
       db,
@@ -256,7 +292,79 @@ describe("tarefas avulsas", () => {
     ).toBe(false);
   });
 
-  it("pode ser excluída, mas hábito não", async () => {
+  it("remove o hábito apenas naquela data e preserva outras datas", async () => {
+    inserirHabito(db, {
+      nome: "Leitura",
+      criadoEm: "2026-11-01",
+      dias: [1, 2, 3, 4, 5, 6, 7],
+    });
+
+    await garantirRegistrosAte(db, "2026-11-08");
+    const habitoDia7 = listarEntradas(db).find(
+      (entrada) => entrada.data === "2026-11-07" && entrada.habit_id !== null,
+    );
+    expect(habitoDia7).toBeDefined();
+
+    expect(
+      (await excluirEntradaDoDia(db, habitoDia7!.id, "2026-11-07")).ok,
+    ).toBe(true);
+
+    expect(
+      listarEntradas(db)
+        .filter((entrada) => ["2026-11-06", "2026-11-07", "2026-11-08"].includes(entrada.data))
+        .map((entrada) => entrada.data),
+    ).toEqual(["2026-11-06", "2026-11-08"]);
+  });
+
+  it("não recria o hábito removido ao garantir o mesmo dia", async () => {
+    inserirHabito(db, {
+      nome: "Leitura",
+      criadoEm: "2026-11-01",
+      dias: [1, 2, 3, 4, 5, 6, 7],
+    });
+
+    await garantirRegistrosAte(db, "2026-11-07");
+    const habitoDia7 = listarEntradas(db).find(
+      (entrada) => entrada.data === "2026-11-07" && entrada.habit_id !== null,
+    );
+    expect(habitoDia7).toBeDefined();
+
+    expect(
+      (await excluirEntradaDoDia(db, habitoDia7!.id, "2026-11-07")).ok,
+    ).toBe(true);
+    await garantirRegistrosDoDia(db, "2026-11-07");
+
+    expect(
+      listarEntradas(db).filter((entrada) => entrada.data === "2026-11-07"),
+    ).toHaveLength(0);
+  });
+
+  it("mantém a geração em outras datas após a exclusão do hábito", async () => {
+    inserirHabito(db, {
+      nome: "Leitura",
+      criadoEm: "2026-11-01",
+      dias: [1, 2, 3, 4, 5, 6, 7],
+    });
+
+    await garantirRegistrosAte(db, "2026-11-08");
+    const habitoDia7 = listarEntradas(db).find(
+      (entrada) => entrada.data === "2026-11-07" && entrada.habit_id !== null,
+    );
+    expect(habitoDia7).toBeDefined();
+
+    expect(
+      (await excluirEntradaDoDia(db, habitoDia7!.id, "2026-11-07")).ok,
+    ).toBe(true);
+    await garantirRegistrosDoDia(db, "2026-11-09");
+
+    expect(
+      listarEntradas(db).find(
+        (entrada) => entrada.data === "2026-11-09" && entrada.habit_id !== null,
+      ),
+    ).toBeDefined();
+  });
+
+  it("continua excluindo tarefas avulsas normalmente", async () => {
     const tarefa = await criarTarefaAvulsa(
       db,
       "2026-10-20",
@@ -268,16 +376,19 @@ describe("tarefas avulsas", () => {
 
     expect((await excluirTarefaAvulsa(db, tarefa.id)).ok).toBe(true);
     expect(listarEntradas(db)).toHaveLength(0);
+  });
 
-    inserirHabito(db, {
-      nome: "Ler",
-      criadoEm: "2026-10-19",
-      dias: [1],
-    });
-    await garantirRegistrosAte(db, "2026-10-19");
-    const doHabito = entradaDoDia("2026-10-19")!;
+  it("recusa a exclusão quando a data não bate com a entrada", async () => {
+    const tarefa = await criarTarefaAvulsa(
+      db,
+      "2026-10-20",
+      "Comprar pão",
+      "2026-10-22",
+    );
+    expect(tarefa.ok).toBe(true);
+    if (!tarefa.ok) return;
 
-    expect((await excluirTarefaAvulsa(db, doHabito.id)).ok).toBe(false);
-    expect(entradaDoDia("2026-10-19")).toBeDefined();
+    expect((await excluirEntradaDoDia(db, tarefa.id, "2026-10-19")).ok).toBe(false);
+    expect(listarEntradas(db)).toHaveLength(1);
   });
 });

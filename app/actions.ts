@@ -10,12 +10,19 @@ import {
 } from "@/lib/dayCards";
 import { getDb } from "@/lib/db";
 import {
+  atualizarDescricaoTarefa,
   criarTarefaAvulsa,
+  excluirEntradaDoDia,
   excluirTarefaAvulsa,
   marcarEntrada,
   reordenarEntradas,
 } from "@/lib/entries";
-import { arquivarHabito, atualizarHabito, criarHabito } from "@/lib/habits";
+import {
+  arquivarHabito,
+  atualizarDescricaoHabito,
+  atualizarHabito,
+  criarHabito,
+} from "@/lib/habits";
 import { obterDadosGrafico } from "@/lib/queries";
 import type {
   RespostaGrafico,
@@ -74,11 +81,20 @@ export async function alternarEntradaAction(
   return resultado;
 }
 
-export async function criarHabitoAction(nome: string): Promise<ResultadoComId> {
+export async function criarHabitoAction(
+  nome: string,
+  descricao = "",
+): Promise<ResultadoComId> {
   return rastrearAcao("CREATE_HABIT", async (etapa) => {
     const db = await getDb();
     etapa("conexão obtida");
-    const resultado = await criarHabito(db, nome, TODOS_OS_DIAS);
+    const resultado = await criarHabito(
+      db,
+      nome,
+      TODOS_OS_DIAS,
+      undefined,
+      descricao,
+    );
     etapa("operação SQL concluída");
     if (resultado.ok) {
       revalidar();
@@ -91,13 +107,21 @@ export async function criarHabitoAction(nome: string): Promise<ResultadoComId> {
 export async function atualizarHabitoAction(
   id: number,
   nome: string,
+  descricao = "",
 ): Promise<ResultadoAcao> {
   if (!Number.isInteger(id)) return { ok: false, erro: "Hábito inválido." };
 
   return rastrearAcao("UPDATE_HABIT", async (etapa) => {
     const db = await getDb();
     etapa("conexão obtida");
-    const resultado = await atualizarHabito(db, id, nome, TODOS_OS_DIAS);
+    const resultado = await atualizarHabito(
+      db,
+      id,
+      nome,
+      TODOS_OS_DIAS,
+      undefined,
+      descricao,
+    );
     etapa("operação SQL concluída");
     if (resultado.ok) {
       revalidar();
@@ -105,6 +129,40 @@ export async function atualizarHabitoAction(
     }
     return resultado;
   });
+}
+
+export async function atualizarDescricaoItemAction(
+  item: {
+    id: number | null;
+    habitId: number | null;
+    tipo: "habito" | "avulsa";
+  },
+  data: string,
+  descricao: string,
+): Promise<ResultadoAcao> {
+  if (
+    typeof item !== "object" ||
+    item === null ||
+    (item.tipo !== "habito" && item.tipo !== "avulsa")
+  ) {
+    return { ok: false, erro: "Item inválido." };
+  }
+  if (typeof data !== "string" || typeof descricao !== "string") {
+    return { ok: false, erro: "Descrição inválida." };
+  }
+
+  const db = await getDb();
+  const resultado =
+    item.tipo === "habito"
+      ? item.habitId !== null
+        ? await atualizarDescricaoHabito(db, item.habitId, descricao)
+        : { ok: false as const, erro: "Hábito inválido." }
+      : item.tipo === "avulsa" && item.id !== null
+        ? await atualizarDescricaoTarefa(db, item.id, data, descricao)
+        : { ok: false as const, erro: "Tarefa inválida." };
+
+  if (resultado.ok) revalidar();
+  return resultado;
 }
 
 export async function criarCardAction(
@@ -159,7 +217,26 @@ export async function criarTarefaAction(
   return resultado;
 }
 
-export async function excluirTarefaAction(id: number): Promise<ResultadoAcao> {
+export async function excluirEntradaDoDiaAction(
+  id: number,
+  data: string,
+): Promise<ResultadoAcao> {
+  if (!Number.isInteger(id)) return { ok: false, erro: "Item inválido." };
+  if (!dataValida(data)) return { ok: false, erro: "Data inválida." };
+
+  const resultado = await excluirEntradaDoDia(await getDb(), id, data);
+  if (resultado.ok) revalidar();
+  return resultado;
+}
+
+export async function excluirTarefaAction(
+  id: number,
+  data?: string,
+): Promise<ResultadoAcao> {
+  if (data) {
+    return excluirEntradaDoDiaAction(id, data);
+  }
+
   if (!Number.isInteger(id)) return { ok: false, erro: "Tarefa inválida." };
 
   const resultado = await excluirTarefaAvulsa(await getDb(), id);

@@ -15,13 +15,15 @@ import type {
   PontoGrafico,
 } from "./types";
 
-function entradaParaItem(entrada: Entrada): ItemDia {
+function entradaParaItem(entrada: Entrada, descricao = ""): ItemDia {
   return {
     id: entrada.id,
     titulo: entrada.titulo,
     concluido: entrada.concluido === 1,
     tipo: entrada.tipo,
     habitId: entrada.habit_id,
+    descricao:
+      entrada.tipo === "habito" ? descricao : entrada.descricao ?? "",
   };
 }
 
@@ -40,6 +42,7 @@ export async function listarHabitosAtivos(
     resultado.push({
       id: habito.id,
       nome: habito.nome,
+      descricao: habito.descricao ?? "",
       dias: vigente ? parseDias(vigente.dias_da_semana) : [],
     });
   }
@@ -67,6 +70,7 @@ export async function obterDias(
         )
       : new Set<string>();
 
+  let descricaoPorHabito = new Map<number, string>();
   if (unicas.length > 0) {
     const entradas = await db.all<Entrada>(
       `SELECT * FROM entries
@@ -75,6 +79,22 @@ export async function obterDias(
       unicas[0],
       unicas[unicas.length - 1],
     );
+    const idsHabitos = [
+      ...new Set(
+        entradas
+          .map((entrada) => entrada.habit_id)
+          .filter((habitId): habitId is number => habitId !== null),
+      ),
+    ];
+    if (idsHabitos.length > 0) {
+      const linhas = await db.all<{ id: number; descricao: string }>(
+        `SELECT id, descricao FROM habits WHERE id IN (${idsHabitos.map(() => "?").join(",")})`,
+        ...idsHabitos,
+      );
+      descricaoPorHabito = new Map(
+        linhas.map((linha) => [linha.id, linha.descricao ?? ""]),
+      );
+    }
     for (const entrada of entradas) {
       const lista = entradasPorData.get(entrada.data) ?? [];
       lista.push(entrada);
@@ -100,7 +120,14 @@ export async function obterDias(
           ehFuturo: true,
           editavel: true,
           ehPrevia: false,
-          itens: entradas.map(entradaParaItem),
+          itens: entradas.map((entrada) =>
+            entradaParaItem(
+              entrada,
+              entrada.habit_id === null
+                ? ""
+                : descricaoPorHabito.get(entrada.habit_id) ?? "",
+            ),
+          ),
         });
       } else {
         const previstos = await listarHabitosNaData(db, data);
@@ -116,6 +143,7 @@ export async function obterDias(
             concluido: false,
             tipo: "habito" as const,
             habitId: habito.id,
+            descricao: habito.descricao ?? "",
           })),
         });
       }
@@ -136,7 +164,12 @@ export async function obterDias(
       ehFuturo: false,
       editavel: true,
       ehPrevia: false,
-      itens: entradas.map(entradaParaItem),
+      itens: entradas.map((entrada) =>
+        entradaParaItem(
+          entrada,
+          entrada.habit_id === null ? "" : descricaoPorHabito.get(entrada.habit_id) ?? "",
+        ),
+      ),
     });
   }
   return dias;

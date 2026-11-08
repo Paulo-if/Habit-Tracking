@@ -57,6 +57,34 @@ export async function criarTarefaAvulsa(
   return { ok: true, id: Number(resultado.lastInsertRowid) };
 }
 
+export async function atualizarDescricaoTarefa(
+  db: DB,
+  id: number,
+  data: string,
+  descricaoBruta: string,
+): Promise<ResultadoAcao> {
+  if (!Number.isInteger(id) || id <= 0) {
+    return { ok: false, erro: "Tarefa inválida." };
+  }
+  if (!dataValida(data)) return { ok: false, erro: "Data inválida." };
+
+  const descricao = descricaoBruta.trim();
+  if (descricao.length > 500) {
+    return { ok: false, erro: "A descrição deve ter no máximo 500 caracteres." };
+  }
+
+  const resultado = await db.run(
+    "UPDATE entries SET descricao = ? WHERE id = ? AND data = ? AND tipo = 'avulsa'",
+    descricao,
+    id,
+    data,
+  );
+  if (resultado.rowsAffected === 0) {
+    return { ok: false, erro: "Tarefa não encontrada neste dia." };
+  }
+  return { ok: true };
+}
+
 export async function reordenarEntradas(
   db: DB,
   data: string,
@@ -99,6 +127,68 @@ export async function reordenarEntradas(
   return { ok: true };
 }
 
+export async function excluirEntradaDoDia(
+  db: DB,
+  id: number,
+  data: string,
+): Promise<ResultadoAcao> {
+  if (!Number.isInteger(id) || id <= 0) {
+    return { ok: false, erro: "Item inválido." };
+  }
+  if (!dataValida(data)) {
+    return { ok: false, erro: "Data inválida." };
+  }
+
+  return db.transaction(async (tx) => {
+    const entrada = await tx.get<Entrada>(
+      "SELECT * FROM entries WHERE id = ? AND data = ?",
+      id,
+      data,
+    );
+    if (!entrada) {
+      return { ok: false, erro: "Item não encontrado nesta data." };
+    }
+
+    const ehHabito = entrada.tipo === "habito" && entrada.habit_id !== null;
+    if (!ehHabito) {
+      const apagou = await tx.run(
+        "DELETE FROM entries WHERE id = ? AND data = ?",
+        id,
+        data,
+      );
+      if (apagou.rowsAffected === 0) {
+        return { ok: false, erro: "Item não encontrado nesta data." };
+      }
+      return { ok: true };
+    }
+
+    const habitId = entrada.habit_id;
+    if (habitId === null) {
+      return { ok: false, erro: "Item inválido para remoção de hábito." };
+    }
+
+    await tx.run(
+      `INSERT INTO habit_entries_removed (habit_id, data)
+       VALUES (?, ?)
+       ON CONFLICT DO NOTHING`,
+      habitId,
+      data,
+    );
+
+    const apagou = await tx.run(
+      "DELETE FROM entries WHERE id = ? AND data = ? AND habit_id = ?",
+      id,
+      data,
+      habitId,
+    );
+    if (apagou.rowsAffected === 0) {
+      return { ok: false, erro: "Item não encontrado nesta data." };
+    }
+
+    return { ok: true };
+  });
+}
+
 export async function excluirTarefaAvulsa(
   db: DB,
   id: number,
@@ -108,10 +198,9 @@ export async function excluirTarefaAvulsa(
     id,
   );
   if (!entrada) return { ok: false, erro: "Item não encontrado." };
-  if (entrada.tipo !== "avulsa") {
+  if (entrada.tipo === "habito" && entrada.habit_id !== null) {
     return { ok: false, erro: "Somente tarefas avulsas podem ser removidas." };
   }
 
-  await db.run("DELETE FROM entries WHERE id = ?", id);
-  return { ok: true };
+  return excluirEntradaDoDia(db, id, entrada.data);
 }

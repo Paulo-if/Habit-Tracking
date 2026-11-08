@@ -3,6 +3,7 @@ export type TipoEntrada = "habito" | "avulsa";
 export type Habito = {
   id: number;
   nome: string;
+  descricao: string;
   arquivado_em: string | null;
   criado_em: string;
 };
@@ -19,6 +20,7 @@ export type Entrada = {
   data: string;
   habit_id: number | null;
   titulo: string;
+  descricao: string;
   concluido: number;
   concluido_em: string | null;
   ordem: number;
@@ -31,6 +33,7 @@ export type ItemDia = {
   concluido: boolean;
   tipo: TipoEntrada;
   habitId: number | null;
+  descricao: string;
 };
 
 export type DiaDaSemana = {
@@ -57,6 +60,7 @@ export type ResultadoComId =
 export type HabitoComDias = {
   id: number;
   nome: string;
+  descricao: string;
   dias: number[];
 };
 

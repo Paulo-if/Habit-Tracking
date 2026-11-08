@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { marcarEntrada } from "../lib/entries";
 import {
   arquivarHabito,
+  atualizarDescricaoHabito,
   atualizarHabito,
   criarHabito,
 } from "../lib/habits";
@@ -45,6 +46,25 @@ describe("criarHabito", () => {
     });
   });
 
+  it("preserva a descrição do hábito", async () => {
+    const resultado = await criarHabito(
+      db,
+      "Caminhar",
+      [4],
+      "2026-10-22",
+      "Correr por pelo menos 30 minutos.",
+    );
+    expect(resultado.ok).toBe(true);
+
+    const habitoId = Number(
+      (db.prepare("SELECT MAX(id) AS id FROM habits").get() as { id: number | null } | undefined)?.id ?? 0,
+    );
+    const habito = db
+      .prepare("SELECT * FROM habits WHERE id = ?")
+      .get(habitoId) as Habito;
+    expect(habito.descricao).toBe("Correr por pelo menos 30 minutos.");
+  });
+
   it("não cria nada se hoje não está entre os dias escolhidos", async () => {
     await criarHabito(db, "Caminhar", [6, 7], "2026-10-22");
     expect(listarEntradas(db)).toHaveLength(0);
@@ -57,6 +77,27 @@ describe("criarHabito", () => {
 });
 
 describe("atualizarHabito", () => {
+  it("atualiza a descrição global do hábito sem alterar suas ocorrências", async () => {
+    const id = inserirHabito(db, {
+      nome: "Correr",
+      criadoEm: "2026-10-19",
+      dias: [1, 2, 3, 4, 5, 6, 7],
+    });
+
+    await garantirRegistrosAte(db, "2026-10-20");
+    const antes = listarEntradas(db);
+
+    expect(
+      await atualizarDescricaoHabito(db, id, "Correr por 30 minutos."),
+    ).toEqual({ ok: true });
+
+    expect(listarEntradas(db)).toEqual(antes);
+    expect(
+      (db.prepare("SELECT descricao FROM habits WHERE id = ?").get(id) as { descricao: string })
+        .descricao,
+    ).toBe("Correr por 30 minutos.");
+  });
+
   it("mudança de frequência não altera o passado", async () => {
     const id = inserirHabito(db, {
       nome: "Ler",
@@ -136,6 +177,30 @@ describe("atualizarHabito", () => {
     ).total;
 
     expect(total).toBe(1);
+  });
+
+  it("atualiza a descrição do hábito sem alterar o restante do registro", async () => {
+    const id = inserirHabito(db, {
+      nome: "Caminhar",
+      criadoEm: "2026-10-19",
+      dias: [1, 2, 3, 4, 5, 6, 7],
+      descricao: "Descrição antiga",
+    });
+
+    const resultado = await atualizarHabito(
+      db,
+      id,
+      "Caminhar",
+      [1, 2, 3, 4, 5, 6, 7],
+      "2026-10-22",
+      "Descrição nova",
+    );
+
+    expect(resultado.ok).toBe(true);
+    const habito = db
+      .prepare("SELECT * FROM habits WHERE id = ?")
+      .get(id) as Habito;
+    expect(habito.descricao).toBe("Descrição nova");
   });
 
   it("renomear congela o passado e atualiza de hoje em diante", async () => {

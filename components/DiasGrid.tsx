@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   alternarEntradaAction,
+  atualizarDescricaoItemAction,
   criarTarefaAction,
   excluirCardAction,
-  excluirTarefaAction,
+  excluirEntradaDoDiaAction,
   reordenarItensAction,
 } from "@/app/actions";
 import type { DiaDaSemana, ItemDia } from "@/lib/types";
@@ -119,6 +120,32 @@ export function DiasGrid({ dias, mensagemVazia }: Props) {
     }
   }
 
+  async function salvarDescricao(item: ItemDia, descricao: string): Promise<boolean> {
+    setErro(null);
+    try {
+      const resultado = await atualizarDescricaoItemAction(
+        {
+          id: item.id,
+          habitId: item.habitId,
+          tipo: item.tipo,
+        },
+        diaAberto ?? "",
+        descricao,
+      );
+      if (!resultado.ok) {
+        setErro(resultado.erro);
+        return false;
+      }
+
+      notificar();
+      router.refresh();
+      return true;
+    } catch {
+      setErro("Não foi possível salvar a descrição. Tente novamente.");
+      return false;
+    }
+  }
+
   async function reordenar(
     data: string,
     origemId: number,
@@ -171,11 +198,11 @@ export function DiasGrid({ dias, mensagemVazia }: Props) {
     }
   }
 
-  function removerTarefa(id: number) {
+  function removerTarefa(data: string, id: number) {
     setErro(null);
     setRemovidos((atual) => [...atual, id]);
 
-    void excluirTarefaAction(id)
+    void excluirEntradaDoDiaAction(id, data)
       .then((resultado) => {
         if (!resultado.ok) {
           setRemovidos((atual) =>
@@ -256,6 +283,7 @@ export function DiasGrid({ dias, mensagemVazia }: Props) {
           excluindo={excluindoCard}
           aoFechar={() => setDiaAberto(null)}
           aoAlternar={alternar}
+          aoSalvarDescricao={salvarDescricao}
           aoAdicionarTarefa={adicionarTarefa}
           aoRemoverTarefa={removerTarefa}
           aoReordenar={reordenar}

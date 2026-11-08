@@ -18,6 +18,7 @@ export function GerenciarHabitos({ habitos }: { habitos: HabitoComDias[] }) {
   const [aberto, setAberto] = useState(false);
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [nome, setNome] = useState("");
+  const [descricao, setDescricao] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [habitoParaArquivar, setHabitoParaArquivar] =
@@ -61,12 +62,14 @@ export function GerenciarHabitos({ habitos }: { habitos: HabitoComDias[] }) {
     setErro(null);
     setEditandoId(null);
     setNome("");
+    setDescricao("");
     setHabitoParaArquivar(null);
   }
 
   function iniciarEdicao(habito: HabitoComDias) {
     setEditandoId(habito.id);
     setNome(habito.nome);
+    setDescricao(habito.descricao ?? "");
     setErro(null);
     conteudoRef.current?.scrollTo({ top: 0, behavior: "smooth" });
     window.setTimeout(() => inputRef.current?.focus(), 30);
@@ -75,6 +78,7 @@ export function GerenciarHabitos({ habitos }: { habitos: HabitoComDias[] }) {
   function cancelarEdicao() {
     setEditandoId(null);
     setNome("");
+    setDescricao("");
     setErro(null);
   }
 
@@ -88,8 +92,8 @@ export function GerenciarHabitos({ habitos }: { habitos: HabitoComDias[] }) {
     try {
       const resultado =
         editandoId === null
-          ? await criarHabitoAction(nome)
-          : await atualizarHabitoAction(editandoId, nome);
+          ? await criarHabitoAction(nome, descricao)
+          : await atualizarHabitoAction(editandoId, nome, descricao);
 
       if (!resultado.ok) {
         setErro(resultado.erro);
@@ -206,6 +210,24 @@ export function GerenciarHabitos({ habitos }: { habitos: HabitoComDias[] }) {
                     maxLength={80}
                     placeholder="Ex.: Estudar 4 blocos"
                     className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-marca focus:outline-none focus:ring-2 focus:ring-marca/20"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="descricao-habito"
+                    className="mb-1.5 block text-sm font-medium text-zinc-700"
+                  >
+                    Descrição
+                  </label>
+                  <textarea
+                    id="descricao-habito"
+                    value={descricao}
+                    onChange={(evento) => setDescricao(evento.target.value)}
+                    maxLength={500}
+                    rows={4}
+                    placeholder="Escreva o que precisa ser feito no hábito."
+                    className="w-full resize-none rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-marca focus:outline-none focus:ring-2 focus:ring-marca/20"
                   />
                 </div>
 

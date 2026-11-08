@@ -12,8 +12,9 @@ type Props = {
   excluindo: boolean;
   aoFechar: () => void;
   aoAlternar: (item: ItemDia, concluido: boolean) => void;
+  aoSalvarDescricao: (item: ItemDia, descricao: string) => Promise<boolean>;
   aoAdicionarTarefa: (data: string, titulo: string) => Promise<boolean>;
-  aoRemoverTarefa: (id: number) => void;
+  aoRemoverTarefa: (data: string, id: number) => void;
   aoReordenar: (
     data: string,
     origemId: number,
@@ -30,6 +31,7 @@ export function CardDiaModal({
   excluindo,
   aoFechar,
   aoAlternar,
+  aoSalvarDescricao,
   aoAdicionarTarefa,
   aoRemoverTarefa,
   aoReordenar,
@@ -44,6 +46,9 @@ export function CardDiaModal({
   const [titulo, setTitulo] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [tarefaParaRemover, setTarefaParaRemover] = useState<ItemDia | null>(null);
+  const [itemExpandido, setItemExpandido] = useState<string | null>(null);
+  const [descricaoRascunho, setDescricaoRascunho] = useState("");
+  const [salvandoDescricao, setSalvandoDescricao] = useState(false);
 
   useEffect(() => {
     fecharAtual.current = aoFechar;
@@ -96,6 +101,18 @@ export function CardDiaModal({
   function apagar() {
     if (excluindo) return;
     setConfirmandoExclusao(true);
+  }
+
+  async function salvarDescricao(evento: React.FormEvent, item: ItemDia) {
+    evento.preventDefault();
+    if (salvandoDescricao) return;
+
+    setSalvandoDescricao(true);
+    try {
+      await aoSalvarDescricao(item, descricaoRascunho);
+    } finally {
+      setSalvandoDescricao(false);
+    }
   }
 
   const previstos = dia.itens.length;
@@ -199,7 +216,9 @@ export function CardDiaModal({
 
             <ul className="space-y-2">
               {dia.itens.map((item) => {
-                const chave = item.id ?? `previa-${item.habitId}-${item.titulo}`;
+                const chave = String(item.id ?? `previa-${item.habitId}-${item.titulo}`);
+                const expandido = itemExpandido === chave;
+
                 return (
                   <ItemArrastavel
                     key={chave}
@@ -209,34 +228,99 @@ export function CardDiaModal({
                     aoReordenar={(origemId, destinoId, posicao) =>
                       aoReordenar(dia.data, origemId, destinoId, posicao)
                     }
-                    className="group relative flex items-center gap-3 rounded-xl px-3 py-2 bg-surface-2 hover:bg-surface-2/80 transition-colors"
+                    className="group flex flex-col gap-2 rounded-xl bg-surface-2 px-3 py-2 transition-colors hover:bg-surface-2/80"
                   >
-                    <input
-                      type="checkbox"
-                      checked={item.concluido}
-                      disabled={!dia.editavel || item.id === null}
-                      onChange={(evento) => aoAlternar(item, evento.target.checked)}
-                      className="h-5 w-5 shrink-0 cursor-pointer rounded-md border-[1.5px] border-[#52525b] accent-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed"
-                    />
-                    <span className={[
-                      "text-sm transition-all duration-200",
-                      item.concluido ? "text-text-muted line-through opacity-60" : "text-text"
-                    ].join(" ")}>
-                      {item.titulo}
-                      {item.tipo === "avulsa" && (
-                        <span className="ml-1.5 rounded-full bg-surface border border-border px-1 py-0 text-[10px] uppercase tracking-wide text-text-muted">
-                          tarefa
-                        </span>
-                      )}
-                    </span>
-                    {item.id !== null && (
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={item.concluido}
+                        disabled={!dia.editavel || item.id === null}
+                        onChange={(evento) => aoAlternar(item, evento.target.checked)}
+                        className="h-5 w-5 shrink-0 cursor-pointer rounded-md border-[1.5px] border-[#52525b] accent-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed"
+                      />
                       <button
                         type="button"
-                        onClick={() => setTarefaParaRemover(item)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1 text-red-400 hover:bg-red-400/10 rounded-md transition-opacity"
+                        onClick={() => {
+                          if (expandido) {
+                            setItemExpandido(null);
+                          } else {
+                            setItemExpandido(chave);
+                            setDescricaoRascunho(item.descricao ?? "");
+                          }
+                        }}
+                        className={[
+                          "flex-1 text-left transition-all duration-200",
+                          "cursor-pointer hover:opacity-80",
+                        ].join(" ")}
+                        aria-expanded={expandido}
                       >
-                        <span aria-hidden="true">×</span>
+                        <span
+                          className={[
+                            "text-sm",
+                            item.concluido ? "text-text-muted line-through opacity-60" : "text-text",
+                          ].join(" ")}
+                        >
+                          {item.titulo}
+                          {item.tipo === "avulsa" && (
+                            <span className="ml-1.5 rounded-full border border-border bg-surface px-1 py-0 text-[10px] uppercase tracking-wide text-text-muted">
+                              tarefa
+                            </span>
+                          )}
+                        </span>
                       </button>
+                      {item.id !== null && (
+                        <button
+                          type="button"
+                          onClick={(evento) => {
+                            evento.stopPropagation();
+                            setTarefaParaRemover(item);
+                          }}
+                          className="shrink-0 rounded-md p-1 text-red-400 opacity-0 transition-opacity hover:bg-red-400/10 group-hover:opacity-100"
+                        >
+                          <span aria-hidden="true">×</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {expandido && (
+                      <form
+                        onSubmit={(evento) => void salvarDescricao(evento, item)}
+                        className="ml-8 space-y-2 rounded-xl border border-border bg-surface px-3 py-3"
+                      >
+                        <label
+                          htmlFor={`descricao-item-${chave}`}
+                          className="block text-xs font-semibold uppercase tracking-wide text-text-muted"
+                        >
+                          Descrição
+                        </label>
+                        <textarea
+                          id={`descricao-item-${chave}`}
+                          autoFocus
+                          value={descricaoRascunho}
+                          onChange={(evento) => setDescricaoRascunho(evento.target.value)}
+                          maxLength={500}
+                          rows={4}
+                          placeholder="Escreva a descrição desta atividade."
+                          className="w-full resize-y rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm leading-relaxed text-text placeholder:text-text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                        />
+                        <div className="flex justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setItemExpandido(null)}
+                            disabled={salvandoDescricao}
+                            className="rounded-lg px-3 py-1.5 text-xs text-text-muted hover:bg-surface-2 disabled:opacity-50"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={salvandoDescricao}
+                            className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-500 disabled:opacity-50"
+                          >
+                            {salvandoDescricao ? "Salvando..." : "Salvar descrição"}
+                          </button>
+                        </div>
+                      </form>
                     )}
                   </ItemArrastavel>
                 );
@@ -332,7 +416,7 @@ export function CardDiaModal({
           descricao={`Tem certeza que deseja remover "${tarefaParaRemover.titulo}" deste dia?`}
           rotuloConfirmar="Remover"
           aoConfirmar={() => {
-            aoRemoverTarefa(tarefaParaRemover.id!);
+            aoRemoverTarefa(dia.data, tarefaParaRemover.id!);
             setTarefaParaRemover(null);
           }}
           aoCancelar={() => setTarefaParaRemover(null)}

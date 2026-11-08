@@ -13,7 +13,7 @@ type Props = {
   mostrarCabecalho?: boolean;
   aoAlternar: (item: ItemDia, concluido: boolean) => void;
   aoAdicionarTarefa: (data: string, titulo: string) => Promise<boolean>;
-  aoRemoverTarefa: (id: number) => void;
+  aoRemoverTarefa: (data: string, id: number) => void;
   aoReordenar: (
     data: string,
     origemId: number,
@@ -297,7 +297,7 @@ export function DiaCard({
         rotuloConfirmar="Remover"
         aoConfirmar={() => {
           if (tarefaParaRemover && tarefaParaRemover.id !== null) {
-            aoRemoverTarefa(tarefaParaRemover.id);
+            aoRemoverTarefa(dia.data, tarefaParaRemover.id);
           }
           setTarefaParaRemover(null);
         }}

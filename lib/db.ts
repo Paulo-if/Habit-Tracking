@@ -128,6 +128,7 @@ const SCHEMA_POSTGRES = `
 CREATE TABLE IF NOT EXISTS habits (
   id SERIAL PRIMARY KEY,
   nome TEXT NOT NULL,
+  descricao TEXT NOT NULL DEFAULT '',
   arquivado_em TEXT,
   criado_em TEXT NOT NULL
 );
@@ -144,6 +145,7 @@ CREATE TABLE IF NOT EXISTS entries (
   data TEXT NOT NULL,
   habit_id INTEGER REFERENCES habits(id) ON DELETE SET NULL,
   titulo TEXT NOT NULL,
+  descricao TEXT NOT NULL DEFAULT '',
   concluido INTEGER NOT NULL DEFAULT 0 CHECK (concluido IN (0, 1)),
   concluido_em TEXT,
   ordem INTEGER NOT NULL DEFAULT 0,
@@ -152,6 +154,11 @@ CREATE TABLE IF NOT EXISTS entries (
 CREATE UNIQUE INDEX IF NOT EXISTS ux_entries_habit_data
   ON entries(habit_id, data) WHERE habit_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS ix_entries_data ON entries(data);
+CREATE TABLE IF NOT EXISTS habit_entries_removed (
+  habit_id INTEGER NOT NULL REFERENCES habits(id) ON DELETE CASCADE,
+  data TEXT NOT NULL,
+  PRIMARY KEY (habit_id, data)
+);
 CREATE TABLE IF NOT EXISTS app_meta (
   chave TEXT PRIMARY KEY,
   valor TEXT NOT NULL
@@ -228,15 +235,32 @@ async function inicializarBanco(db: DB): Promise<void> {
         await tx.run(statement);
       }
 
-      const colunas = await tx.all<{ name: string }>(
+      const colunasEntradas = await tx.all<{ name: string }>(
         `SELECT column_name AS name
          FROM information_schema.columns
          WHERE table_schema = current_schema()
            AND table_name = 'entries'`,
       );
-      if (!colunas.some((coluna: { name: string }) => coluna.name === "ordem")) {
+      if (!colunasEntradas.some((coluna: { name: string }) => coluna.name === "ordem")) {
         await tx.run(
           "ALTER TABLE entries ADD COLUMN ordem INTEGER NOT NULL DEFAULT 0",
+        );
+      }
+      if (!colunasEntradas.some((coluna: { name: string }) => coluna.name === "descricao")) {
+        await tx.run(
+          "ALTER TABLE entries ADD COLUMN IF NOT EXISTS descricao TEXT NOT NULL DEFAULT ''",
+        );
+      }
+
+      const colunasHabits = await tx.all<{ name: string }>(
+        `SELECT column_name AS name
+         FROM information_schema.columns
+         WHERE table_schema = current_schema()
+           AND table_name = 'habits'`,
+      );
+      if (!colunasHabits.some((coluna: { name: string }) => coluna.name === "descricao")) {
+        await tx.run(
+          "ALTER TABLE habits ADD COLUMN IF NOT EXISTS descricao TEXT NOT NULL DEFAULT ''",
         );
       }
 
