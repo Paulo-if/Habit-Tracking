@@ -285,23 +285,24 @@ export function CardDiaModal({
                     {expandido && (
                       <form
                         onSubmit={(evento) => void salvarDescricao(evento, item)}
-                        className="ml-8 space-y-2 rounded-xl border border-border bg-surface px-3 py-3"
+                        className="mt-1 space-y-2 border-t border-dashed border-border/70 pt-3"
                       >
                         <label
                           htmlFor={`descricao-item-${chave}`}
-                          className="block text-xs font-semibold uppercase tracking-wide text-text-muted"
+                          className="block text-sm text-text-muted"
                         >
-                          Descrição
+                          Escreva a descrição desta atividade.
                         </label>
                         <textarea
                           id={`descricao-item-${chave}`}
                           autoFocus
                           value={descricaoRascunho}
                           onChange={(evento) => setDescricaoRascunho(evento.target.value)}
+                          disabled={salvandoDescricao}
                           maxLength={500}
                           rows={4}
-                          placeholder="Escreva a descrição desta atividade."
-                          className="w-full resize-y rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm leading-relaxed text-text placeholder:text-text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                          placeholder="Digite sua descrição aqui..."
+                          className="w-full resize-y rounded-lg border border-border bg-surface px-3 py-2 text-sm leading-relaxed text-text placeholder:text-text-muted focus:border-accent focus:outline-none disabled:opacity-60"
                         />
                         <div className="flex justify-end gap-2">
                           <button
