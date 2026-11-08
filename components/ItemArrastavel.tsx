@@ -78,7 +78,7 @@ export function ItemArrastavel({
         }
         setPosicaoSoltura(null);
       }}
-      className={`${className}${podeArrastar ? " cursor-grab active:cursor-grabbing" : ""}`}
+      className={`relative ${className}${podeArrastar ? " cursor-grab active:cursor-grabbing" : ""}`}
     >
       {posicaoSoltura && podeArrastar && (
         <span
