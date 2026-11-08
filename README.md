@@ -6,7 +6,7 @@
   <img src="Hero_Image.jpg" alt="Imagem Hero" width="700">
 </p>
 </div>
-Uma simples aplicação web para monitorar e organizar meus hábitos. Uso pessoal, um único usuário, sem login. O app usa PostgreSQL no Supabase em desenvolvimento e na Vercel. Sem pontos ou diário; o gráfico mostra a quantidade de atividades concluídas por dia. Semana de **segunda a domingo**.
+Uma simples aplicação web para monitorar e organizar meus hábitos. Uso pessoal, um único usuário, sem login. O app usa PostgreSQL no Supabase em desenvolvimento e na Vercel. Sem pontos ou diário; o gráfico mostra a quantidade de atividades concluídas por dia. Semana de segunda a domingo.
 
 ## Stack
 
